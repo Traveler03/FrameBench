@@ -1,11 +1,13 @@
 import torch
 import pytest
 from torch.utils.cpp_extension import load
+from typing import Optional
+from test_utils import benchmark
 
-ext = load(name="bitmask_ext", sources=["ops/bitmask_kernel.cu"], verbose=False)
+ext = load(name="bitmask_ext", sources=["../ops/bitmask_kernel.cu"], verbose=False)
 
 
-def torch_ref_apply_bitmask_(logits: torch.Tensor, bitmask: torch.Tensor, indices: torch.Tensor | None = None):
+def torch_ref_apply_bitmask_(logits: torch.Tensor, bitmask: torch.Tensor, indices: Optional[torch.Tensor] = None):
     if logits.dim() == 1:
         logits = logits.unsqueeze(0)
         bitmask = bitmask.unsqueeze(0)
@@ -46,3 +48,12 @@ def test_bitmask_basic(dtype):
     ref_cpu = logits_ref.float().cpu()
     out_cpu = logits_out.float().cpu()
     assert torch.allclose(out_cpu, ref_cpu, atol=0, rtol=0) 
+
+    t_torch_ref = benchmark(torch_ref_apply_bitmask_, 50, logits, bitmask)
+    print(f"torch_ref: {t_torch_ref:.4f} ms")
+
+    t_cuda = benchmark(ext.apply_token_bitmask_inplace_cuda, 50, logits, bitmask)
+    print(f"cuda impl: {t_cuda:.4f} ms")
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "-s"]) 
