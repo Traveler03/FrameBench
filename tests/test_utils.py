@@ -13,4 +13,4 @@ def benchmark(func, num_repeats, *args, **kwargs):
     torch.cuda.synchronize()
     elapsed = time.time() - start_time
     
-    return elapsed / num_repeats * 1000  # return ms
+    return elapsed / num_repeats * 1000  # return ms 
